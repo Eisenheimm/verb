@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verb Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 550px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card {
+            position: relative;
+            width: 400px;
+            height: 550px;
+            perspective: 1000px;
+            margin: auto;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.8s;
+        }
+        .card-inner.flipped {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .card-front {
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .card-back {
+            background: black;
+            transform: rotateY(180deg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            background-size: cover;
+            background-position: center;
+        }
+        .feedback {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .feedback.riktig {
+            color: green;
+        }
+        .feedback.fail {
+            color: red;
+        }
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .option {
+            padding: 10px;
+            font-size: 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .option.correct {
+            background: green;
+        }
+        .option.wrong {
+            background: red;
+        }
+        .input-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            display: none;
+        }
+        .input-container input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 80%;
+            margin-bottom: 10px;
+        }
+        .input-container button {
+            padding: 10px;
+            font-size: 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .result-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .result-screen ul {
+            list-style: none;
+            padding: 0;
+        }
+        .result-screen li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="game-content">
+            <div class="card" id="card">
+                <div class="card-inner" id="card-inner">
+                    <div class="card-front">
+                        <img id="verb-image" src="" alt="Verb Image">
+                    </div>
+                    <div class="card-back" id="verb-back"></div>
+                </div>
+            </div>
+            <div class="options-container" id="options-container" style="display: none;"></div>
+            <div class="input-container" id="input-container">
+                <input type="text" id="user-input" placeholder="Fiilin adını yaz...">
+                <button id="submit-answer">Gönder</button>
+            </div>
+            <div class="feedback" id="feedback"></div>
+        </div>
+        <div class="result-screen" id="result-screen">
+            <h3>Oyun Bitti!</h3>
+            <p>Yanlış cevapladığınız kartlar:</p>
+            <ul id="incorrect-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        const verbList = ["heter", "bor", "snakker", "skriver", "leser", "regner", "staver", "spør", "svarer", "forteller", "tegner", "teller", "lytter", "hjentar", "husker", "glemmer", "øver", "forklarer", "sover", "våkner", "ligger", "står", "går", "sitter", "løoer", "hvisker", "roper", "ser", "hører", "smaker", "gøler", "lukter", "ler", "gråter", "smiler", "puster", "spiser", "drikker", "steker", "koker", "griller", "smører", "serverer", "vaske", "skreller", "regner", "snør", "skinner", "blåser", "lyner", "tordner", "smelter", "fryser", "drypper", "tar", "gir", "får", "har", "eier", "leier", "finner", "mister", "låner", "leker", "sykler", "husker", "mater", "leier", "passer", "steller", "bråker", "leverer", "sier", "diskuterer", "skjønner", "prater", "samtaler", "ringer", "lærer", "underviser", "studerer", "trenger", "handler", "selger", "betaler", "prøver", "kjøper", "bærer", "passer", "triller", "vanner", "støvsuger", "syr", "strikker", "måler", "fisker", "skrur", "maler", "koster", "gjesper", "fryser", "svetter", "smitter", "hoster", "nyser", "tisser", "vokser", "blør", "begynner", "stopper", "stenger", "åpner", "slutter", "venter", "kommer", "låser", "hjelper", "rydder", "liker", "baker", "skjærer", "kutter", "deler", "roter", "veier", "lager", "kjører", "parkerer", "kolliderer", "krysser", "fyler", "skraper", "rygger", "taper", "vinner", "hopper", "jogger", "trener", "lugger", "klatrer", "krabber", "faller", "ror", "stikker", "bader", "dujer", "spruter", "stuper", "drukner", "svømmer", "tørker", "visper", "rører", "reiser", "flytter", "flykter", "vinker", "reserverer", "pakker", "bestiller", "letter", "lander", "spiller", "danser", "synger", "plystrer", "klapper", "stresser", "snorker", "stammer", "hikker", "stjeler", "raner", "klyper", "slår", "slåss", "dytter", "skremmer", "mobber", "kjefter", "henter", "sender", "poster", "veksler", "sparer", "stempler", "beholder", "bytter", "mangler", "jukser", "arbeider", "samarbeider", "blar", "oversetter", "søker", "velger", "godtar", "avslår", "klipper", "pusser", "føner", "børster", "lakker", "pynter", "treffer", "besøker", "trives", "legger", "omfavner", "kysser", "ber", "besvimer", "klemmer", "skriker", "trekker", "hviler", "flagger", "dør", "trøster", "visner", "inviterer", "takker", "gratulerer", "feirer", "begraver", "reparerer", "murer", "brøyter", "graver", "limer", "snekrer", "sammenligner", "innkaller", "tjener", "knepper", "knyter", "bretter", "rister", "vrenger", "sår", "planter", "høster", "plukker", "plastrer", "brekker", "vrikker", "renser", "vaksinerer", "velter", "angrer", "arrestere", "baktaler", "stiger", "synker", "brenner", "slokker", "tenner", "røyker", "fyrer", "lyser", "løfter", "fyller ut", "skriver under", "ser på", "tenker på", "blunker til", "venter på", "spytter ut", "kaster opp", "gaper opp", "står opp", "slapper av", "hilser på", "kjefter på", "leter etter", "tar vare på", "henger op", "skylder på", "banker opp", "har lyst på", "har lyst til", "viser fram", "setter pris på", "får lov til", "gjør lekser", "tar ut", "setter på", "lader opp", "vasker opp", "rer opp", "tapper i", "heller i", "passer på", "setter inn", "heller ut", "tørker opp", "tørker av", "varmer opp", "koker over", "øser opp", "dekker på", "smaker på", "ligner på", "lengter etter", "drømmer om", "tråkker på", "går på salg", "drar kortet", "slår koden", "bruker opp", "pakker inn", "taster inn", "peker på", "kjenner på", "ser etter", "er på vei til", "drar til", "kommer fra", "går av", "sitter på med", "står på ski", "ringer på", "legger på", "banker på", "vasker seg", "tørker seg", "barberer seg", "kler på seg", "kler av seg", "grer seg", "sminker seg", "speiler seg", "smører seg", "forsever seg", "strekker seg", "forelsker seg", "gifter seg", "skiller seg", "brenner seg", "soler seg", "beveger seg", "snyter seg", "forsyner seg", "koser seg", "brekker seg", "holder seg", "skader seg", "blotter seg", "slanker seg", "forandrer seg", "stikker seg", "snur seg", "gjemmer seg", "skynder seg", "setter seg", "reiser seg", "gruer seg", "gleder seg", "presentter seg", "kommer seg"];
+
+        const data = [
+    { image: './images/1_heter.jpg', correct: 'heter', backImage: './images/1_heter_back.jpg' },
+    { image: './images/2_bor.jpg', correct: 'bor', backImage: './images/2_bor_back.jpg' },
+    { image: './images/3_snakker.jpg', correct: 'snakker', backImage: './images/3_snakker_back.jpg' },
+    { image: './images/4_skriver.jpg', correct: 'skriver', backImage: './images/4_skriver_back.jpg' },
+    { image: './images/5_leser.jpg', correct: 'leser', backImage: './images/5_leser_back.jpg' },
+    { image: './images/6_regner.jpg', correct: 'regner', backImage: './images/6_regner_back.jpg' },
+    { image: './images/7_staver.jpg', correct: 'staver', backImage: './images/7_staver_back.jpg' },
+    { image: './images/8_spør.jpg', correct: 'spør', backImage: './images/8_spør_back.jpg' },
+    { image: './images/9_svarer.jpg', correct: 'svarer', backImage: './images/9_svarer_back.jpg' },
+    { image: './images/10_forteller.jpg', correct: 'forteller', backImage: './images/10_forteller_back.jpg' },
+    { image: './images/11_tegner.jpg', correct: 'tegner', backImage: './images/11_tegner_back.jpg' },
+    { image: './images/12_teller.jpg', correct: 'teller', backImage: './images/12_teller_back.jpg' },
+    { image: './images/13_lytter.jpg', correct: 'lytter', backImage: './images/13_lytter_back.jpg' },
+    { image: './images/14_gjentar.jpg', correct: 'gjentar', backImage: './images/14_gjentar_back.jpg' },
+    { image: './images/15_husker.jpg', correct: 'husker', backImage: './images/15_husker_back.jpg' },
+    { image: './images/16_glemmer.jpg', correct: 'glemmer', backImage: './images/16_glemmer_back.jpg' },
+    { image: './images/17_øver.jpg', correct: 'øver', backImage: './images/17_øver_back.jpg' },
+    { image: './images/18_forklarer.jpg', correct: 'forklarer', backImage: './images/18_forklarer_back.jpg' },
+    { image: './images/19_sover.jpg', correct: 'sover', backImage: './images/19_sover_back.jpg' },
+    { image: './images/20_våkner.jpg', correct: 'våkner', backImage: './images/20_våkner_back.jpg' },
+    { image: './images/21_ligger.jpg', correct: 'ligger', backImage: './images/21_ligger_back.jpg' },
+    { image: './images/22_står.jpg', correct: 'står', backImage: './images/22_står_back.jpg' },
+    { image: './images/23_går.jpg', correct: 'går', backImage: './images/23_går_back.jpg' },
+    { image: './images/24_sitter.jpg', correct: 'sitter', backImage: './images/24_sitter_back.jpg' },
+    { image: './images/25_løper.jpg', correct: 'løper', backImage: './images/25_løper_back.jpg' },
+    { image: './images/26_hvisker.jpg', correct: 'hvisker', backImage: './images/26_hvisker_back.jpg' },
+    { image: './images/27_roper.jpg', correct: 'roper', backImage: './images/27_roper_back.jpg' },
+    { image: './images/28_ser.jpg', correct: 'ser', backImage: './images/28_ser_back.jpg' },
+    { image: './images/29_hører.jpg', correct: 'hører', backImage: './images/29_hører_back.jpg' },
+    { image: './images/30_smaker.jpg', correct: 'smaker', backImage: './images/30_smaker_back.jpg' },
+    { image: './images/31_føler.jpg', correct: 'føler', backImage: './images/31_føler_back.jpg' },
+    { image: './images/32_lukter.jpg', correct: 'lukter', backImage: './images/32_lukter_back.jpg' },
+    { image: './images/33_ler.jpg', correct: 'ler', backImage: './images/33_ler_back.jpg' },
+    { image: './images/34_gråter.jpg', correct: 'gråter', backImage: './images/34_gråter_back.jpg' },
+    { image: './images/35_smiler.jpg', correct: 'smiler', backImage: './images/35_smiler_back.jpg' },
+    { image: './images/36_puster.jpg', correct: 'puster', backImage: './images/36_puster_back.jpg' },
+    { image: './images/37_spiser.jpg', correct: 'spiser', backImage: './images/37_spiser_back.jpg' },
+    { image: './images/38_drikker.jpg', correct: 'drikker', backImage: './images/38_drikker_back.jpg' },
+    { image: './images/39_steker.jpg', correct: 'steker', backImage: './images/39_steker_back.jpg' },
+    { image: './images/40_koker.jpg', correct: 'koker', backImage: './images/40_koker_back.jpg' },
+    { image: './images/41_griller.jpg', correct: 'griller', backImage: './images/41_griller_back.jpg' },
+    { image: './images/42_smører.jpg', correct: 'smører', backImage: './images/42_smører_back.jpg' },
+    { image: './images/43_serverer.jpg', correct: 'serverer', backImage: './images/43_serverer_back.jpg' },
+    { image: './images/44_vaske.jpg', correct: 'vaske', backImage: './images/44_vaske_back.jpg' },
+    { image: './images/45_skreller.jpg', correct: 'skreller', backImage: './images/45_skreller_back.jpg' },
+    { image: './images/46_regner.jpg', correct: 'regner', backImage: './images/46_regner_back.jpg' },
+    { image: './images/47_snør.jpg', correct: 'snør', backImage: './images/47_snør_back.jpg' },
+    { image: './images/48_skinner.jpg', correct: 'skinner', backImage: './images/48_skinner_back.jpg' },
+    { image: './images/49_blåser.jpg', correct: 'blåser', backImage: './images/49_blåser_back.jpg' },
+    { image: './images/50_lyner.jpg', correct: 'lyner', backImage: './images/50_lyner_back.jpg' },
+    { image: './images/50_lyner.jpg', correct: 'lyner', backImage: './images/50_lyner_back.jpg' },
+    { image: './images/51_tordner.jpg', correct: 'tordner', backImage: './images/51_tordner_back.jpg' },
+    { image: './images/52_smelter.jpg', correct: 'smelter', backImage: './images/52_smelter_back.jpg' },
+    { image: './images/53_fryser.jpg', correct: 'fryser', backImage: './images/53_fryser_back.jpg' },
+    { image: './images/54_drypper.jpg', correct: 'drypper', backImage: './images/54_drypper_back.jpg' },
+    { image: './images/55_tar.jpg', correct: 'tar', backImage: './images/55_tar_back.jpg' },
+    { image: './images/56_gir.jpg', correct: 'gir', backImage: './images/56_gir_back.jpg' },
+    { image: './images/57_får.jpg', correct: 'får', backImage: './images/57_får_back.jpg' },
+    { image: './images/58_har.jpg', correct: 'har', backImage: './images/58_har_back.jpg' },
+    { image: './images/59_eier.jpg', correct: 'eier', backImage: './images/59_eier_back.jpg' },
+    { image: './images/60_leier.jpg', correct: 'leier', backImage: './images/60_leier_back.jpg' },
+    { image: './images/61_finner.jpg', correct: 'finner', backImage: './images/61_finner_back.jpg' },
+    { image: './images/62_mister.jpg', correct: 'mister', backImage: './images/62_mister_back.jpg' },
+    { image: './images/63_låner.jpg', correct: 'låner', backImage: './images/63_låner_back.jpg' },
+    { image: './images/64_leker.jpg', correct: 'leker', backImage: './images/64_leker_back.jpg' },
+    { image: './images/65_sykler.jpg', correct: 'sykler', backImage: './images/65_sykler_back.jpg' },
+    { image: './images/66_husker.jpg', correct: 'husker', backImage: './images/66_husker_back.jpg' },
+    { image: './images/67_mater.jpg', correct: 'mater', backImage: './images/67_mater_back.jpg' },
+    { image: './images/68_leier.jpg', correct: 'leier', backImage: './images/68_leier_back.jpg' },
+    { image: './images/69_passer.jpg', correct: 'passer', backImage: './images/69_passer_back.jpg' },
+    { image: './images/70_steller.jpg', correct: 'steller', backImage: './images/70_steller_back.jpg' },
+    { image: './images/71_bråker.jpg', correct: 'bråker', backImage: './images/71_bråker_back.jpg' },
+    { image: './images/72_leverer.jpg', correct: 'leverer', backImage: './images/72_leverer_back.jpg' },
+    { image: './images/73_sier.jpg', correct: 'sier', backImage: './images/73_sier_back.jpg' },
+    { image: './images/74_diskuterer.jpg', correct: 'diskuterer', backImage: './images/74_diskuterer_back.jpg' },
+    { image: './images/75_skjønner.jpg', correct: 'skjønner', backImage: './images/75_skjønner_back.jpg' },
+    { image: './images/76_prater.jpg', correct: 'prater', backImage: './images/76_prater_back.jpg' },
+    { image: './images/77_samtaler.jpg', correct: 'samtaler', backImage: './images/77_samtaler_back.jpg' },
+    { image: './images/78_ringer.jpg', correct: 'ringer', backImage: './images/78_ringer_back.jpg' },
+    { image: './images/79_lærer.jpg', correct: 'lærer', backImage: './images/79_lærer_back.jpg' },
+    { image: './images/80_underviser.jpg', correct: 'underviser', backImage: './images/80_underviser_back.jpg' },
+    { image: './images/81_studerer.jpg', correct: 'studerer', backImage: './images/81_studerer_back.jpg' },
+    { image: './images/82_trenger.jpg', correct: 'trenger', backImage: './images/82_trenger_back.jpg' },
+    { image: './images/83_handler.jpg', correct: 'handler', backImage: './images/83_handler_back.jpg' },
+    { image: './images/84_selger.jpg', correct: 'selger', backImage: './images/84_selger_back.jpg' },
+    { image: './images/85_betaler.jpg', correct: 'betaler', backImage: './images/85_betaler_back.jpg' },
+    { image: './images/86_prøver.jpg', correct: 'prøver', backImage: './images/86_prøver_back.jpg' },
+    { image: './images/87_kjøper.jpg', correct: 'kjøper', backImage: './images/87_kjøper_back.jpg' },
+    { image: './images/88_bærer.jpg', correct: 'bærer', backImage: './images/88_bærer_back.jpg' },
+    { image: './images/89_passer.jpg', correct: 'passer', backImage: './images/89_passer_back.jpg' },
+    { image: './images/90_triller.jpg', correct: 'triller', backImage: './images/90_triller_back.jpg' },
+    { image: './images/91_vanner.jpg', correct: 'vanner', backImage: './images/91_vanner_back.jpg' },
+    { image: './images/92_støvsuger.jpg', correct: 'støvsuger', backImage: './images/92_støvsuger_back.jpg' },
+    { image: './images/93_syr.jpg', correct: 'syr', backImage: './images/93_syr_back.jpg' },
+    { image: './images/94_strikker.jpg', correct: 'strikker', backImage: './images/94_strikker_back.jpg' },
+    { image: './images/95_måler.jpg', correct: 'måler', backImage: './images/95_måler_back.jpg' },
+    { image: './images/96_fisker.jpg', correct: 'fisker', backImage: './images/96_fisker_back.jpg' },
+    { image: './images/97_skrur.jpg', correct: 'skrur', backImage: './images/97_skrur_back.jpg' },
+    { image: './images/98_maler.jpg', correct: 'maler', backImage: './images/98_maler_back.jpg' },
+    { image: './images/99_koster.jpg', correct: 'koster', backImage: './images/99_koster_back.jpg' },
+    { image: './images/100_gjesper.jpg', correct: 'gjesper', backImage: './images/100_gjesper_back.jpg' },
+    { image: './images/100_gjesper.jpg', correct: 'gjesper', backImage: './images/100_gjesper_back.jpg' },
+    { image: './images/101_fryser.jpg', correct: 'fryser', backImage: './images/101_fryser_back.jpg' },
+    { image: './images/102_svetter.jpg', correct: 'svetter', backImage: './images/102_svetter_back.jpg' },
+    { image: './images/103_smitter.jpg', correct: 'smitter', backImage: './images/103_smitter_back.jpg' },
+    { image: './images/104_hoster.jpg', correct: 'hoster', backImage: './images/104_hoster_back.jpg' },
+    { image: './images/105_nyser.jpg', correct: 'nyser', backImage: './images/105_nyser_back.jpg' },
+    { image: './images/106_tisser.jpg', correct: 'tisser', backImage: './images/106_tisser_back.jpg' },
+    { image: './images/107_vokser.jpg', correct: 'vokser', backImage: './images/107_vokser_back.jpg' },
+    { image: './images/108_blør.jpg', correct: 'blør', backImage: './images/108_blør_back.jpg' },
+    { image: './images/109_begynner.jpg', correct: 'begynner', backImage: './images/109_begynner_back.jpg' },
+    { image: './images/110_stopper.jpg', correct: 'stopper', backImage: './images/110_stopper_back.jpg' },
+    { image: './images/111_stenger.jpg', correct: 'stenger', backImage: './images/111_stenger_back.jpg' },
+    { image: './images/112_åpner.jpg', correct: 'åpner', backImage: './images/112_åpner_back.jpg' },
+    { image: './images/113_slutter.jpg', correct: 'slutter', backImage: './images/113_slutter_back.jpg' },
+    { image: './images/114_venter.jpg', correct: 'venter', backImage: './images/114_venter_back.jpg' },
+    { image: './images/115_kommer.jpg', correct: 'kommer', backImage: './images/115_kommer_back.jpg' },
+    { image: './images/116_låser.jpg', correct: 'låser', backImage: './images/116_låser_back.jpg' },
+    { image: './images/117_hjelper.jpg', correct: 'hjelper', backImage: './images/117_hjelper_back.jpg' },
+    { image: './images/118_rydder.jpg', correct: 'rydder', backImage: './images/118_rydder_back.jpg' },
+    { image: './images/119_liker.jpg', correct: 'liker', backImage: './images/119_liker_back.jpg' },
+    { image: './images/120_baker.jpg', correct: 'baker', backImage: './images/120_baker_back.jpg' },
+    { image: './images/121_skjærer.jpg', correct: 'skjærer', backImage: './images/121_skjærer_back.jpg' },
+    { image: './images/122_kutter.jpg', correct: 'kutter', backImage: './images/122_kutter_back.jpg' },
+    { image: './images/123_deler.jpg', correct: 'deler', backImage: './images/123_deler_back.jpg' },
+    { image: './images/124_roter.jpg', correct: 'roter', backImage: './images/124_roter_back.jpg' },
+    { image: './images/125_veier.jpg', correct: 'veier', backImage: './images/125_veier_back.jpg' },
+    { image: './images/126_lager.jpg', correct: 'lager', backImage: './images/126_lager_back.jpg' },
+    { image: './images/127_kjører.jpg', correct: 'kjører', backImage: './images/127_kjører_back.jpg' },
+    { image: './images/128_parkerer.jpg', correct: 'parkerer', backImage: './images/128_parkerer_back.jpg' },
+    { image: './images/129_kolliderer.jpg', correct: 'kolliderer', backImage: './images/129_kolliderer_back.jpg' },
+    { image: './images/130_krysser.jpg', correct: 'krysser', backImage: './images/130_krysser_back.jpg' },
+    { image: './images/131_fyler.jpg', correct: 'fyler', backImage: './images/131_fyler_back.jpg' },
+    { image: './images/132_skraper.jpg', correct: 'skraper', backImage: './images/132_skraper_back.jpg' },
+    { image: './images/133_rygger.jpg', correct: 'rygger', backImage: './images/133_rygger_back.jpg' },
+    { image: './images/134_taper.jpg', correct: 'taper', backImage: './images/134_taper_back.jpg' },
+    { image: './images/135_vinner.jpg', correct: 'vinner', backImage: './images/135_vinner_back.jpg' }
+
+];
+
+        let shuffledData = [];
+        let currentIndex = 0;
+        let incorrectAnswers = [];
+        let correctCount = 0;
+        let incorrectCount = 0;
+
+        const gameContent = document.getElementById('game-content');
+        const cardInner = document.getElementById('card-inner');
+        const verbImage = document.getElementById('verb-image');
+        const verbBack = document.getElementById('verb-back');
+        const optionsContainer = document.getElementById('options-container');
+        const inputContainer = document.getElementById('input-container');
+        const userInput = document.getElementById('user-input');
+        const submitAnswer = document.getElementById('submit-answer');
+        const feedback = document.getElementById('feedback');
+        const scoreDisplay = document.createElement('div');
+        scoreDisplay.id = 'score-display';
+        scoreDisplay.style.marginTop = '10px';
+        scoreDisplay.style.fontSize = '16px';
+        scoreDisplay.style.fontWeight = 'bold';
+        document.querySelector('.game-container').appendChild(scoreDisplay);
+        const resultScreen = document.getElementById('result-screen');
+        const incorrectList = document.getElementById('incorrect-list');
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function getRandomWrongOptions(correct, count) {
+            const wrongOptions = [];
+            while (wrongOptions.length < count) {
+                const randomVerb = verbList[Math.floor(Math.random() * verbList.length)];
+                if (randomVerb !== correct && !wrongOptions.includes(randomVerb)) {
+                    wrongOptions.push(randomVerb);
+                }
+            }
+            return wrongOptions;
+        }
+
+        function loadQuestion() {
+            updateScoreDisplay();
+            const current = shuffledData[currentIndex];
+            cardInner.classList.remove('flipped');
+            verbBack.style.backgroundImage = 'none';
+            verbImage.src = current.image;
+            feedback.textContent = '';
+
+            // Rastgele yazma mı seçenek mi belirle
+            const isWriting = Math.random() > 0.5;
+
+            if (isWriting) {
+                inputContainer.style.display = 'flex';
+                optionsContainer.style.display = 'none';
+            } else {
+                inputContainer.style.display = 'none';
+                optionsContainer.style.display = 'grid';
+
+                // Seçenekleri oluştur
+                const wrongOptions = getRandomWrongOptions(current.correct, 3);
+                const allOptions = shuffle([...wrongOptions, current.correct]);
+
+                optionsContainer.innerHTML = '';
+                allOptions.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('option');
+                    button.addEventListener('click', () => handleOptionClick(button, option === current.correct));
+                    optionsContainer.appendChild(button);
+                });
+            }
+        }
+
+        function handleOptionClick(button, isCorrect) {
+            const current = shuffledData[currentIndex];
+            cardInner.classList.add('flipped');
+            verbBack.style.backgroundImage = `url(${current.backImage})`;
+
+            if (isCorrect) {
+                feedback.textContent = 'Riktig!';
+                feedback.className = 'feedback riktig';
+                button.classList.add('correct');
+                correctCount++;
+            } else {
+                feedback.textContent = `Feil! Riktig svar: ${current.correct}`;
+                feedback.className = 'feedback fail';
+                button.classList.add('wrong');
+                incorrectAnswers.push(current.image);
+                incorrectCount++;
+            }
+
+            setTimeout(() => {
+                currentIndex++;
+                if (currentIndex < shuffledData.length) {
+                    loadQuestion();
+                } else {
+                    endGame();
+                }
+            }, 2000);
+        }
+
+        function handleWritingAnswer() {
+            const current = shuffledData[currentIndex];
+            const userAnswer = userInput.value.trim().toLowerCase();
+
+            cardInner.classList.add('flipped');
+            verbBack.style.backgroundImage = `url(${current.backImage})`;
+
+            if (userAnswer === current.correct) {
+                feedback.textContent = 'Riktig!';
+                feedback.className = 'feedback riktig';
+                correctCount++;
+            } else {
+                feedback.textContent = `Feil! Riktig svar: ${current.correct}`;
+                feedback.className = 'feedback fail';
+                incorrectAnswers.push(current.image);
+                incorrectCount++;
+            }
+
+            setTimeout(() => {
+                currentIndex++;
+                if (currentIndex < shuffledData.length) {
+                    loadQuestion();
+                } else {
+                    endGame();
+                }
+            }, 2000);
+        }
+
+        submitAnswer.addEventListener('click', () => {
+            if (userInput.value.trim() !== '') {
+                handleWritingAnswer();
+                userInput.value = '';
+            }
+        });
+
+        function updateScoreDisplay() {
+            scoreDisplay.innerHTML = `Riktig: <span style="color: green;">${correctCount}</span>, Feil: <span style="color: red;">${incorrectCount}</span>`;
+        }
+
+        function endGame() {
+            resultScreen.style.display = 'flex';
+            gameContent.style.display = 'none';
+
+            // Yanlış yapılanları sıralama
+            incorrectAnswers = [...new Set(incorrectAnswers)];
+    incorrectAnswers.sort((a, b) => {
+        const numA = parseInt(a.match(/(\d+)/)[0], 10);
+        const numB = parseInt(b.match(/(\d+)/)[0], 10);
+        return numA - numB;
+            });
+
+resultScreen.style.display = 'flex';
+    gameContent.style.display = 'none';
+
+            incorrectAnswers.forEach(image => {
+                const li = document.createElement('li');
+        li.textContent = `Kart: ${image.replace('./images/', '').replace('.jpg', '')}`;
+        incorrectList.appendChild(li);
+            });
+
+            feedback.textContent = `Riktig: ${correctCount}, Feil: ${incorrectCount}`;
+        }
+
+        function startGame() {
+            shuffledData = shuffle([...data]);
+            currentIndex = 0;
+            incorrectAnswers = [];
+            correctCount = 0;
+            incorrectCount = 0;
+            loadQuestion();
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
